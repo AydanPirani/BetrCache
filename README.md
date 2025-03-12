@@ -1,0 +1,2 @@
+# BetrCache
+A better cache.
