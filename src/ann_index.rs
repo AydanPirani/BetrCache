@@ -4,7 +4,7 @@ pub type ANNResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub trait ANNIndex<'a> {
     fn init_index(&mut self, max_elements: usize, dimension: usize) -> ANNResult<()>;
-    fn add_pt(&mut self, point: Vec<f32>) -> ANNResult<()>;
+    fn add_pt(&mut self, point: Vec<f32>, id: usize) -> ANNResult<()>;
     fn get_curr_ct(&self) -> ANNResult<(usize)>;
     fn get_max_elements(&mut self) -> ANNResult<(usize)>;
     fn resize(&mut self, new_size: usize) -> ANNResult<()>; 
@@ -28,12 +28,11 @@ impl<'a> ANNIndex<'a> for HnswAnnIndex<'a> {
         return Ok(());
     }
 
-    fn add_pt(&mut self, point: Vec<f32>) -> ANNResult<()> {
+    fn add_pt(&mut self, point: Vec<f32>, id: usize) -> ANNResult<()> {
         if point.len() != self.dimension {
             return Err("Point dimensions don't match!".into());
         }
 
-        let id = self.hnsw.get_nb_point();
         self.hnsw.insert((&point, id));
         self.points.push((point, id));
         
