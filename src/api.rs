@@ -14,6 +14,7 @@ pub struct GPTOptions {
     pub provider: Provider,
     pub openai_api_key: Option<String>,
     pub openrouter_api_key: Option<String>,
+    pub prefix: String,
 }
 
 pub struct API;
@@ -34,12 +35,15 @@ impl API {
             ),
         };
 
+        let content = options.prefix.clone() + prompt;
+        println!("Prompt: {}", content);
+
         let response = client.post(url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&json!({
                 "model": options.model,
-                "messages": [{ "role": "user", "content": prompt }]
+                "messages": [{ "role": "user", "content": content }]
             }))
             .send()
             .await?;

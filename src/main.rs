@@ -1,11 +1,11 @@
 mod ann_index;
-mod cache;
+mod api;
 mod cache_client;
+mod cache;
+mod index;
 mod similarity;
 mod types;
 mod utils;
-mod api;
-
 
 use cache_client::CacheClient;
 use cache_client::RedisClient;
@@ -14,6 +14,8 @@ use tokio;
 
 use std::env;
 use dotenv::dotenv;
+
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -32,11 +34,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         provider,
         openai_api_key,
         openrouter_api_key,
+        prefix: "You are a search assistant. Give me a response in 5 sentences.".to_string(),
     };
 
     let prompt = "What is Chicago known for?";
-
-    println!("Prompt: {}", prompt);
+ 
     let res = API::get_gpt_response(prompt, &options).await;
     match res {
         Ok(response) => println!("GPT Response: {}", response),
@@ -50,6 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client
         .h_set("user:1", "name", "Alice")
         .expect("Failed to set value in Redis");
+
     let value = client
         .hm_get("user:1", &["name"])
         .expect("Failed to get value from Redis");

@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EmbeddingData {
     pub id: usize,

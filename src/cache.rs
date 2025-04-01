@@ -70,7 +70,7 @@ impl <'a> Cache<'a> {
 
         let timestamp = get_unix_seconds();
 
-        let data = EmbeddingData::new(self.current_id, query, embedding, response, timestamp);
+        let data = EmbeddingData{id: self.current_id, query, embedding, response, timestamp };
 
         self.client.h_set(&self.redis_key, &id.to_string(), &serde_json::to_string(&data)?)?;
 
