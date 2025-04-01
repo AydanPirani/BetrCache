@@ -5,15 +5,40 @@ use std::error::Error;
 use std::env;
 use dotenvy::dotenv;
 
+#[derive(Debug)]
+pub enum Provider {
+    OpenAI,
+    OpenRouter,
+}
+
+pub struct GPTOptions {
+    pub model: Option<String>,
+    pub provider: Provider,
+    pub openai_api_key: Option<String>,
+    pub openrouter_api_key: Option<String>,
+}
+
 pub struct API;
 
 impl API {
     pub async fn get_gpt_response(prompt: &str, options: &GPTOptions) -> Result<String, Box<dyn Error>> {
         let client = Client::new();
 
-        let response = client.post("https://api.openai.com/v1/chat/completions")
+        // Choose the endpoint and API key based on the selected provider.
+        let (url, api_key) = match options.provider {
+            Provider::OpenAI => (
+                "https://api.openai.com/v1/chat/completions",
+                options.openai_api_key.as_ref().expect("Missing OPENAI_API_KEY")
+            ),
+            Provider::OpenRouter => (
+                "https://openrouter.ai/api/v1/chat/completions",
+                options.openrouter_api_key.as_ref().expect("Missing OPENROUTER_API_KEY")
+            ),
+        };
+
+        let response = client.post(url)
             .header("Content-Type", "application/json")
-            .header("Authorization", format!("Bearer {}", options.openai_api_key))
+            .header("Authorization", format!("Bearer {}", api_key))
             .json(&json!({
                 "model": options.model.as_deref().unwrap_or("gpt-4o-mini-2024-07-18"),
                 "messages": [{ "role": "user", "content": prompt }]
@@ -21,9 +46,9 @@ impl API {
             .send()
             .await?;
 
-        let response_json: serde_json::Value = response.json().await?;
+        let response_json: Value = response.json().await?;
         println!("Full JSON Response: {:?}", response_json); // Debugging line
-        
+
         let content = response_json["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("")
@@ -31,27 +56,5 @@ impl API {
             .to_string();
 
         Ok(content)
-    }
-}
-
-pub struct GPTOptions {
-    pub model: Option<String>,
-    pub openai_api_key: String,
-}
-
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
-
-    let api_key = env::var("OPENAI_API_KEY").expect("Missing OPENAI_API_KEY in .env file");
-
-    let options = GPTOptions {
-        model: None,  // Default model will be used
-        openai_api_key: api_key,
-    };
-
-    match API::get_gpt_response("Hello, GPT!", &options).await {
-        Ok(response) => println!("GPT Response: {}", response),
-        Err(err) => eprintln!("Error: {}", err),
     }
 }

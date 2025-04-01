@@ -1,6 +1,4 @@
 use redis::{Commands, Connection};
-use std::env;
-use dotenv::dotenv;
 
 pub type CacheResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -18,13 +16,9 @@ pub struct RedisClient {
 
 impl RedisClient {
     /// Constructor for RedisClient
-    pub fn new() -> CacheResult<Self> {
+    pub fn new(url: String) -> CacheResult<Self> {
         println!("Creating Redis Client");
 
-        // Load environment variables from the .env file
-        dotenv().ok();
-
-        let url = env::var("REDIS_URL")?; // Get Redis URL from env
         println!("Connecting to Redis at: {}", url);
         let client = redis::Client::open(url.clone())?;
         let con = client.get_connection()?; // Establish connection
