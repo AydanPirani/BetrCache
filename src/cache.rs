@@ -6,7 +6,7 @@ use crate::ann_index::ANNIndex;
 use crate::types::EmbeddingData;
 use crate::utils::get_unix_seconds;
 
-const DIMENSION: usize = 384;
+pub const DIMENSION: usize = 384;
 
 pub struct Cache<'a> {
     client: Box<dyn CacheClient>,
@@ -19,15 +19,16 @@ pub struct Cache<'a> {
 }
 
 impl <'a> Cache<'a> {
-    pub fn new(&mut self, client: Box<dyn CacheClient>, ann_index: Box<dyn ANNIndex<'a>>, redis_key: String, embedding_size: usize, cache_ttl: i64) -> () {
-        self.client = client;
-        self.ann_index = ann_index;
-        self.embedding_size = embedding_size;
-        self.index_initialized = false;
-        self.current_id = 0;
-        self.cache_ttl = cache_ttl;
-        self.redis_key = redis_key;
-        return;
+    pub fn new(client: Box<dyn CacheClient>, ann_index: Box<dyn ANNIndex<'a>>, redis_key: String, embedding_size: usize, cache_ttl: i64) -> Self {
+        Self {
+            client: client,
+            ann_index: ann_index,
+            embedding_size: embedding_size,
+            index_initialized: false,
+            current_id: 0,
+            cache_ttl: cache_ttl,
+            redis_key: redis_key,
+        }
     }
 
 
@@ -54,7 +55,7 @@ impl <'a> Cache<'a> {
         self.current_id = max_val + 1;
         self.index_initialized = true;
 
-        return Ok(());
+        Ok(())
     }
 
 
@@ -92,7 +93,7 @@ impl <'a> Cache<'a> {
         
         self.ann_index.add_pt(new_embedding, id)?;
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn semantic_search(&mut self, embedding: Vec<f32>, k: usize) -> CacheResult<Vec<EmbeddingData>> {

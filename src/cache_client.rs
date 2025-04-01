@@ -31,26 +31,26 @@ impl CacheClient for RedisClient {
     fn h_set(&mut self, key: &str, field: &str, value: &str) -> CacheResult<()> {
         // Throw away result, just ensure that it does not fail
         let _: () = self.con.hset(key, field, value)?;
-        return Ok(());
+        Ok(())
     }
 
     fn hm_get(&mut self, key: &str, fields: &[&str] ) -> CacheResult<Vec<Option<String>>> {
         let res = self.con.hget(key, fields)?;
-        return Ok(res);
+        Ok(res)
     }
 
     fn h_get_all(&mut self, key: &str) -> CacheResult<std::collections::HashMap<String, String>> {
         let res = self.con.hgetall(key)?; 
-        return Ok(res);
+        Ok(res)
     }
 
     fn delete(&mut self, key: &str) -> CacheResult<()> {
         let _: () = self.con.del(key)?;
-        return Ok(());
+        Ok(())
     }
 
     fn expire(&mut self, key: &str, seconds: i64) -> CacheResult<()> {
         let _: () = self.con.expire(key, seconds)?;
-        return Ok(());
+        Ok(())
     }
 }
