@@ -2,8 +2,6 @@ use reqwest::Client;
 use serde_json::json;
 use serde_json::Value;
 use std::error::Error;
-use std::env;
-use dotenvy::dotenv;
 
 #[derive(Debug)]
 pub enum Provider {
@@ -12,7 +10,7 @@ pub enum Provider {
 }
 
 pub struct GPTOptions {
-    pub model: Option<String>,
+    pub model: String,
     pub provider: Provider,
     pub openai_api_key: Option<String>,
     pub openrouter_api_key: Option<String>,
@@ -40,7 +38,7 @@ impl API {
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&json!({
-                "model": options.model.as_deref().unwrap_or("gpt-4o-mini-2024-07-18"),
+                "model": options.model,
                 "messages": [{ "role": "user", "content": prompt }]
             }))
             .send()

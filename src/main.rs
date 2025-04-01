@@ -19,14 +19,16 @@ use dotenv::dotenv;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let url = env::var("REDIS_URL")?; // Get Redis URL from env
+    let url = env::var("REDIS_URL")?;
+    let model = env::var("MODEL")?;
+    
     let openai_api_key = env::var("OPENAI_API_KEY").ok();
     let openrouter_api_key = env::var("OPENROUTER_API_KEY").ok();
 
     let provider = Provider::OpenRouter;
 
     let options = GPTOptions {
-        model: None,
+        model,
         provider,
         openai_api_key,
         openrouter_api_key,
@@ -34,6 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let prompt = "What is Chicago known for?";
 
+    println!("Prompt: {}", prompt);
     let res = API::get_gpt_response(prompt, &options).await;
     match res {
         Ok(response) => println!("GPT Response: {}", response),
