@@ -1,11 +1,10 @@
 use redis::{Commands, Connection};
 use std::env;
+use dotenv::dotenv;
 
 pub type CacheResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub trait CacheClient {
-    fn create(&mut self) -> CacheResult<()>;
-    fn connect(&mut self) -> CacheResult<()>;
     fn h_set(&mut self, key: &str, field: &str, value: &str) -> CacheResult<()>;
     fn hm_get(&mut self, key: &str, fields: &[&str] ) -> CacheResult<Vec<Option<String>>>;
     fn h_get_all(&mut self, key: &str) -> CacheResult<std::collections::HashMap<String, String>>;
@@ -14,24 +13,28 @@ pub trait CacheClient {
 }
 
 pub struct RedisClient {
-    url: String,
     con: Connection,
 }
 
+impl RedisClient {
+    /// Constructor for RedisClient
+    pub fn new() -> CacheResult<Self> {
+        println!("Creating Redis Client");
+
+        // Load environment variables from the .env file
+        dotenv().ok();
+
+        let url = env::var("REDIS_URL")?; // Get Redis URL from env
+        println!("Connecting to Redis at: {}", url);
+        let client = redis::Client::open(url.clone())?;
+        let con = client.get_connection()?; // Establish connection
+
+        Ok(Self { con }) // Return an initialized RedisClient
+    }
+}
+
 impl CacheClient for RedisClient {
-    fn create(&mut self) -> CacheResult<()> {
-        self.url = env::var("REDIS_URL")?;
-        return Ok(());
-    }
-
-    fn connect(&mut self) -> CacheResult<()> {
-        let client = redis::Client::open(self.url.clone())?;
-        self.con = client.get_connection()?;
-        return Ok(());
-    }
-
     fn h_set(&mut self, key: &str, field: &str, value: &str) -> CacheResult<()> {
-        
         // Throw away result, just ensure that it does not fail
         let _: () = self.con.hset(key, field, value)?;
         return Ok(());
