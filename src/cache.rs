@@ -5,8 +5,7 @@ use crate::cache_client::{CacheClient, CacheResult};
 use crate::ann_index::ANNIndex;
 use crate::types::EmbeddingData;
 use crate::utils::get_unix_seconds;
-
-const DIMENSION: usize = 384;
+use crate::EMBEDDING_DIMENSION;
 
 pub struct Cache<'a> {
     client: Box<dyn CacheClient>,
@@ -19,15 +18,16 @@ pub struct Cache<'a> {
 }
 
 impl <'a> Cache<'a> {
-    pub fn new(&mut self, client: Box<dyn CacheClient>, ann_index: Box<dyn ANNIndex<'a>>, redis_key: String, embedding_size: usize, cache_ttl: i64) -> () {
-        self.client = client;
-        self.ann_index = ann_index;
-        self.embedding_size = embedding_size;
-        self.index_initialized = false;
-        self.current_id = 0;
-        self.cache_ttl = cache_ttl;
-        self.redis_key = redis_key;
-        return;
+    pub fn new(client: Box<dyn CacheClient>, ann_index: Box<dyn ANNIndex<'a>>, redis_key: String, embedding_size: usize, cache_ttl: i64) -> Self {
+        Self {
+            client: client,
+            ann_index: ann_index,
+            embedding_size: embedding_size,
+            index_initialized: false,
+            current_id: 0,
+            cache_ttl: cache_ttl,
+            redis_key: redis_key,
+        }
     }
 
 
@@ -35,16 +35,16 @@ impl <'a> Cache<'a> {
         let data = self.get_all_embeddings()?;
         
         if data.len() == 0 {
-            self.ann_index.init_index(1, DIMENSION)?;
+            self.ann_index.init_index(1, *EMBEDDING_DIMENSION)?;
             self.index_initialized = true;
             return Ok(());
         }
         
-        if (data[0].embedding.len() == 0) {
+        if data[0].embedding.len() == 0 {
             return Err("Something went wrong!".into());
         }
         
-        self.ann_index.init_index(data.len(), DIMENSION)?;
+        self.ann_index.init_index(data.len(), *EMBEDDING_DIMENSION)?;
         
         let max_val = data.iter().map(|d|(d.id)).max().unwrap();
         for d in data {
@@ -54,7 +54,7 @@ impl <'a> Cache<'a> {
         self.current_id = max_val + 1;
         self.index_initialized = true;
 
-        return Ok(());
+        Ok(())
     }
 
 
@@ -63,39 +63,43 @@ impl <'a> Cache<'a> {
             return Err("embedding sizes mismatch!".into());
         }
 
+        println!("Storing embedding");
+
         let new_embedding = embedding.clone();
 
         let id = self.current_id;
-        self.current_id += 1;
 
         let timestamp = get_unix_seconds();
 
-        let data = EmbeddingData::new(self.current_id, query, embedding, response, timestamp);
+        let data = EmbeddingData{id, query, embedding, response, timestamp };
 
         self.client.h_set(&self.redis_key, &id.to_string(), &serde_json::to_string(&data)?)?;
-
+        
         if self.cache_ttl != 0 {
             self.client.expire(&self.redis_key,self.cache_ttl)?;
         }
 
-        if (!self.index_initialized) {
-            self.ann_index.init_index(1000, DIMENSION)?;
+        if !self.index_initialized {
+            println!("Initializing index");
+            self.ann_index.init_index(1000, *EMBEDDING_DIMENSION)?;
             self.index_initialized = true;
         }
 
         let current_elements = self.ann_index.get_curr_ct()?;
         let max_elements = self.ann_index.get_max_elements()?;
 
-        if (current_elements > max_elements) {
+        if current_elements > max_elements {
+            println!("Resizing index");
             self.ann_index.resize(current_elements + 1000)?;
         }
         
+        println!("Adding point to index");
         self.ann_index.add_pt(new_embedding, id)?;
 
-        return Ok(());
+        Ok(())
     }
 
-    pub fn semantic_search(&mut self, embedding: Vec<f32>, k: usize) -> CacheResult<Vec<EmbeddingData>> {
+    pub fn semantic_search(&mut self, embedding: &[f32], k: usize) -> CacheResult<Vec<EmbeddingData>> {
         if embedding.len() != self.embedding_size {
             return Err("embedding sizes mismatch!".into());
         }
@@ -111,7 +115,7 @@ impl <'a> Cache<'a> {
             return Ok(vec![]);
         }
 
-        let result = self.ann_index.search_knn(embedding.as_slice(), adjusted_k)?;
+        let result = self.ann_index.search_knn(embedding, adjusted_k)?;
         let ids: Vec<String> = result.iter().map(|n| n.0.to_string()).collect();        
         let id_refs: Vec<&str> = ids.iter().map(|s| s.as_str()).collect();
         let data: Vec<Option<String>> = self.client.hm_get(&self.redis_key, &id_refs)?;
@@ -140,9 +144,4 @@ impl <'a> Cache<'a> {
         return Ok(embeddings);
     }
 
-}
-
-fn mapper((_, v): (String, String)) -> CacheResult<EmbeddingData> {
-    let embedding_data: EmbeddingData = serde_json::from_str(&v)?;
-    return Ok(embedding_data);
 }

@@ -114,6 +114,7 @@ dependencies = [
  "dotenv",
  "dotenvy",
  "hnsw_rs",
+ "lazy_static",
  "redis",
  "reqwest",
  "serde",
