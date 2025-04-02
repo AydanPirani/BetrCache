@@ -20,7 +20,7 @@ pub async fn query<'a>(
 ) -> Result<String, Box<dyn std::error::Error>> {
     let query_embedding = get_embedding(prompt, &embedding_options).await?;
 
-    let candidates = cache.semantic_search(&query_embedding, THRESHOLD)?;
+    let candidates = cache.semantic_search(&query_embedding, *THRESHOLD)?;
 
     if candidates.len() == 0 {
         println!("No candidates found! Querying API..");
@@ -42,7 +42,7 @@ pub async fn query<'a>(
         }
     }
 
-    if best_similarity > SIMILARITY_THRESHOLD {
+    if best_similarity > *SIMILARITY_THRESHOLD {
         println!("Cache hit! Returning cached response..");
         return Ok(candidates[best_candidate].response.clone());
     } else {

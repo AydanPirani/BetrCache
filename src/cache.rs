@@ -5,8 +5,7 @@ use crate::cache_client::{CacheClient, CacheResult};
 use crate::ann_index::ANNIndex;
 use crate::types::EmbeddingData;
 use crate::utils::get_unix_seconds;
-
-pub const EMBEDDING_DIMENSION: usize = 1536;
+use crate::EMBEDDING_DIMENSION;
 
 pub struct Cache<'a> {
     client: Box<dyn CacheClient>,
@@ -36,7 +35,7 @@ impl <'a> Cache<'a> {
         let data = self.get_all_embeddings()?;
         
         if data.len() == 0 {
-            self.ann_index.init_index(1, EMBEDDING_DIMENSION)?;
+            self.ann_index.init_index(1, *EMBEDDING_DIMENSION)?;
             self.index_initialized = true;
             return Ok(());
         }
@@ -45,7 +44,7 @@ impl <'a> Cache<'a> {
             return Err("Something went wrong!".into());
         }
         
-        self.ann_index.init_index(data.len(), EMBEDDING_DIMENSION)?;
+        self.ann_index.init_index(data.len(), *EMBEDDING_DIMENSION)?;
         
         let max_val = data.iter().map(|d|(d.id)).max().unwrap();
         for d in data {
@@ -82,7 +81,7 @@ impl <'a> Cache<'a> {
 
         if (!self.index_initialized) {
             println!("Initializing index");
-            self.ann_index.init_index(1000, EMBEDDING_DIMENSION)?;
+            self.ann_index.init_index(1000, *EMBEDDING_DIMENSION)?;
             self.index_initialized = true;
         }
 

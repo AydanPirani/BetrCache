@@ -8,14 +8,11 @@ mod similarity;
 mod types;
 mod utils;
 
-use api::get_gpt_response;
 use cache::Cache;
-use cache::EMBEDDING_DIMENSION;
 use cache_client::CacheClient;
 use cache_client::RedisClient;
-use api::{GPTOptions, Provider, EmbeddingOptions, get_embedding};
+use api::{GPTOptions, Provider, EmbeddingOptions};
 use tokio;
-use similarity::cosine_similarity;
 
 use std::env;
 use std::io;
@@ -23,9 +20,6 @@ use std::io::Write;
 use dotenv::dotenv;
 use ann_index::HnswAnnIndex;
 use lazy_static::lazy_static;
-
-const THRESHOLD: usize = 5;
-const SIMILARITY_THRESHOLD: f32 = 0.8;
 
 use crate::utils::query;
 
@@ -38,6 +32,10 @@ lazy_static! {
     
     static ref EMBEDDINGS_PROVIDER: Provider = Provider::OpenAI;
     static ref LLM_PROVIDER: Provider = Provider::OpenRouter;
+
+    static ref THRESHOLD: usize = 5;
+    static ref SIMILARITY_THRESHOLD: f32 = 0.8;
+    static ref EMBEDDING_DIMENSION: usize = 1536;
 }
 
 #[tokio::main]
@@ -76,11 +74,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         api_key: embeddings_key,
     };
 
-    let index = HnswAnnIndex::new(1000, EMBEDDING_DIMENSION);
+    let index = HnswAnnIndex::new(1000, *EMBEDDING_DIMENSION);
     let mut client = RedisClient::new(&REDIS_URL)?;
     client.delete("embeddings")?;
     
-    let mut cache: Cache<'_> = Cache::new(Box::new(client), Box::new(index), "embeddings".to_string(), EMBEDDING_DIMENSION, 0);
+    let mut cache: Cache<'_> = Cache::new(Box::new(client), Box::new(index), "embeddings".to_string(), *EMBEDDING_DIMENSION, 0);
     
     loop {
         print!("> ");

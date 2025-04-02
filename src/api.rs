@@ -25,21 +25,6 @@ pub struct EmbeddingOptions<'a> {
     pub api_key: &'a str,
 }
 
-#[derive(Serialize)]
-struct OpenAIRequest<'a> {
-    input: &'a str,
-    model: &'a str,
-}
-
-#[derive(Deserialize)]
-pub struct OpenAIResponse {
-    pub data: Vec<OpenAIEmbeddingData>,
-}
-
-#[derive(Deserialize)]
-pub struct OpenAIEmbeddingData {
-    pub embedding: Vec<f64>,
-}
 
 pub async fn get_gpt_response<'a>(prompt: &str, options: &GPTOptions<'a>) -> Result<String, Box<dyn Error>> {
     let client = Client::new();
