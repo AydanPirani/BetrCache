@@ -35,6 +35,7 @@ pub async fn query<'a>(
 
     for idx in 1..candidates.len() {
         let similarity = cosine_similarity(&candidates[idx].embedding, &query_embedding);
+        println!("Candidate({}): {}", similarity, candidates[idx].response);
 
         if similarity > best_similarity {
             best_candidate = idx;
@@ -43,7 +44,7 @@ pub async fn query<'a>(
     }
 
     if best_similarity > *SIMILARITY_THRESHOLD {
-        println!("Cache hit! Returning cached response..");
+        println!("Cache hit{}! Returning cached response..", best_similarity);
         return Ok(candidates[best_candidate].response.clone());
     } else {
         println!("No good candidates found! Querying API..");
