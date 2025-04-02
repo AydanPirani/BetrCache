@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let index = HnswAnnIndex::new(1000, DIMENSION);
     let client = RedisClient::new(redis_url)?;
     
-    let cache: Cache<'_> = Cache::new(Box::new(client), Box::new(index), "embeddings".to_string(), 384, 0);
+    let cache: Cache<'_> = Cache::new(Box::new(client), Box::new(index), "embeddings".to_string(), DIMENSION, 10);
     
     let prompt = "What is Chicago known for?";
     let embeddings = get_embedding(prompt, &embedding_options).await?;
