@@ -8,6 +8,7 @@ mod similarity;
 mod types;
 mod utils;
 
+use api::get_gpt_response;
 use cache::Cache;
 use cache_client::CacheClient;
 use cache_client::RedisClient;
@@ -64,16 +65,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cache: Cache<'_> = Cache::new(Box::new(client), Box::new(index), "embeddings".to_string(), DIMENSION, 10);
     
     let prompt = "What is Chicago known for?";
-    let embeddings = get_embedding(prompt, &embedding_options).await?;
-    println!("Embeddings: {:?}", embeddings);
+    // let embeddings = get_embedding(prompt, &embedding_options).await?;
+    // println!("Embeddings: {:?}", embeddings);
 
     // cache.store_embedding(prompt.to_string(), embeddings, "response".to_string())?;
     
-    // let res = API::get_gpt_response(prompt, &options).await;
-    // match res {
-    //     Ok(response) => println!("GPT Response: {}", response),
-    //     Err(err) => eprintln!("Error: {}", err),
-    // };
+    let res = get_gpt_response(prompt, &gpt_options).await;
+    match res {
+        Ok(response) => println!("GPT Response: {}", response),
+        Err(err) => eprintln!("Error: {}", err),
+    };
     
 
 
