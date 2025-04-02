@@ -3,7 +3,6 @@ mod api;
 mod cache_client;
 mod cache;
 mod embeddings;
-mod index;
 mod similarity;
 mod types;
 mod utils;

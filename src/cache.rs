@@ -40,7 +40,7 @@ impl <'a> Cache<'a> {
             return Ok(());
         }
         
-        if (data[0].embedding.len() == 0) {
+        if data[0].embedding.len() == 0 {
             return Err("Something went wrong!".into());
         }
         
@@ -79,7 +79,7 @@ impl <'a> Cache<'a> {
             self.client.expire(&self.redis_key,self.cache_ttl)?;
         }
 
-        if (!self.index_initialized) {
+        if !self.index_initialized {
             println!("Initializing index");
             self.ann_index.init_index(1000, *EMBEDDING_DIMENSION)?;
             self.index_initialized = true;
@@ -88,7 +88,7 @@ impl <'a> Cache<'a> {
         let current_elements = self.ann_index.get_curr_ct()?;
         let max_elements = self.ann_index.get_max_elements()?;
 
-        if (current_elements > max_elements) {
+        if current_elements > max_elements {
             println!("Resizing index");
             self.ann_index.resize(current_elements + 1000)?;
         }
@@ -144,9 +144,4 @@ impl <'a> Cache<'a> {
         return Ok(embeddings);
     }
 
-}
-
-fn mapper((_, v): (String, String)) -> CacheResult<EmbeddingData> {
-    let embedding_data: EmbeddingData = serde_json::from_str(&v)?;
-    return Ok(embedding_data);
 }

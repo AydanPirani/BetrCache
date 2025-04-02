@@ -5,8 +5,8 @@ pub type ANNResult<T> = Result<T, Box<dyn std::error::Error>>;
 pub trait ANNIndex<'a> {
     fn init_index(&mut self, max_elements: usize, dimension: usize) -> ANNResult<()>;
     fn add_pt(&mut self, point: Vec<f32>, id: usize) -> ANNResult<()>;
-    fn get_curr_ct(&self) -> ANNResult<(usize)>;
-    fn get_max_elements(&mut self) -> ANNResult<(usize)>;
+    fn get_curr_ct(&self) -> ANNResult<usize>;
+    fn get_max_elements(&mut self) -> ANNResult<usize>;
     fn resize(&mut self, new_size: usize) -> ANNResult<()>; 
     fn search_knn(&self, query: &[f32], k: usize) -> ANNResult<Vec<(usize, f32)>>;
 }
@@ -49,12 +49,12 @@ impl<'a> ANNIndex<'a> for HnswAnnIndex<'a> {
         Ok(())
     }
 
-    fn get_curr_ct(&self) -> ANNResult<(usize)> {
+    fn get_curr_ct(&self) -> ANNResult<usize> {
         let ct = self.hnsw.get_nb_point();
         Ok(ct)
     }
 
-    fn get_max_elements(&mut self) -> ANNResult<(usize)> {
+    fn get_max_elements(&mut self) -> ANNResult<usize> {
         Ok(self.max_elements)
     }
 

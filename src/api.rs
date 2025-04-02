@@ -1,6 +1,4 @@
 use reqwest::Client;
-use serde::Deserialize;
-use serde::Serialize;
 use serde_json::json;
 use serde_json::Value;
 use std::error::Error;
