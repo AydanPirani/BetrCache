@@ -70,7 +70,7 @@ pub async fn get_gpt_response<'a>(prompt: &str, options: &GPTOptions<'a>) -> Res
         .await?;
 
     let response_json: Value = response.json().await?;
-    println!("Full JSON Response: {:?}", response_json); // Debugging line
+    // println!("Full JSON Response: {:?}", response_json); // Debugging line
 
     let content = response_json["choices"][0]["message"]["content"]
         .as_str()
@@ -106,7 +106,7 @@ pub async fn get_embedding<'a>(input: &str, options: &EmbeddingOptions<'a>) -> R
         .await?;
 
     let response_json: Value = response.json().await?;
-    println!("Full JSON Response for embedding: {:?}", response_json); // Debugging line
+    // println!("Full JSON Response for embedding: {:?}", response_json); // Debugging line
 
     // Extract the embedding vector.
     let embedding = response_json["data"][0]["embedding"]

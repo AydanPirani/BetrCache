@@ -16,11 +16,11 @@ pub struct RedisClient {
 
 impl RedisClient {
     /// Constructor for RedisClient
-    pub fn new(url: String) -> CacheResult<Self> {
+    pub fn new(url: &str) -> CacheResult<Self> {
         println!("Creating Redis Client");
 
         println!("Connecting to Redis at: {}", url);
-        let client = redis::Client::open(url.clone())?;
+        let client = redis::Client::open(url)?;
         let con = client.get_connection()?; // Establish connection
 
         Ok(Self { con }) // Return an initialized RedisClient
