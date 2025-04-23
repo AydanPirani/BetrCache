@@ -1,6 +1,5 @@
 import argparse
 import os
-import asyncio
 from dotenv import load_dotenv
 
 from src.ann_index import HnswAnnIndex
@@ -40,7 +39,7 @@ emb_opts = EmbeddingOptions(
     api_key=emb_key
 )
 
-async def query(
+def query(
     prompt: str,
     gpt_opts: GPTOptions,
     emb_opts: EmbeddingOptions,
@@ -50,12 +49,12 @@ async def query(
 ) -> str:
     print("INIT", cache.ann_index.get_max_elements())
     logger.info(f"Querying for {prompt}")
-    emb = await get_embedding(prompt, emb_opts)
+    emb = get_embedding(prompt, emb_opts)
     candidates = cache.semantic_search(emb, threshold)
 
     if not candidates:
         logger.debug("No match found, querying LLM")
-        resp = await get_gpt_response(prompt, gpt_opts)
+        resp = get_gpt_response(prompt, gpt_opts)
         cache.store_embedding(prompt, emb, resp)
         return resp
 
@@ -66,13 +65,14 @@ async def query(
         return best.response
     
     logger.debug("No good match found, querying LLM")
-    resp = await get_gpt_response(prompt, gpt_opts)
+    resp = get_gpt_response(prompt, gpt_opts)
+    logger.info("Got response from LLM")
     cache.store_embedding(prompt, emb, resp)
     print("AFTER", cache.ann_index.get_max_elements())
     return resp
 
 
-async def repl():
+def repl():
     index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
     client = RedisClient(REDIS_URL)
     client.delete("embeddings")
@@ -80,7 +80,7 @@ async def repl():
 
     while True:
         prompt = input("> ")
-        resp = await query(prompt, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
+        resp = query(prompt, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
         print(resp)
 
 if __name__ == "__main__":
@@ -98,4 +98,4 @@ if __name__ == "__main__":
     setup_logging(args.log_level)
     logger.debug("Debugging is now enabled")
 
-    asyncio.run(repl())
+    repl()

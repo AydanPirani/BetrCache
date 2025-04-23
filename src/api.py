@@ -1,8 +1,5 @@
-import os
 from enum import Enum
 from dataclasses import dataclass
-import httpx
-import asyncio
 import requests
 
 
@@ -26,7 +23,7 @@ class EmbeddingOptions:
     api_key: str
 
 
-async def get_gpt_response(prompt: str, options: GPTOptions) -> str:
+def get_gpt_response(prompt: str, options: GPTOptions) -> str:
     url = (
         "https://api.openai.com/v1/chat/completions"
         if options.provider == Provider.OPENAI
@@ -47,7 +44,7 @@ async def get_gpt_response(prompt: str, options: GPTOptions) -> str:
     return data["choices"][0]["message"]["content"].strip()
 
 
-async def get_embedding(input: str, options: EmbeddingOptions) -> list[float]:
+def get_embedding(input: str, options: EmbeddingOptions) -> list[float]:
     if options.provider == Provider.OPENROUTER:
         raise NotImplementedError("OpenRouter embeddings not supported")
     url = "https://api.openai.com/v1/embeddings"
