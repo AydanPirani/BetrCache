@@ -1,0 +1,5 @@
+hnswlib
+httpx
+redis
+python-dotenv
+pydantic
