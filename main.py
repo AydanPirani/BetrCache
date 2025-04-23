@@ -12,6 +12,7 @@ from src.utils import logger, setup_logging
 load_dotenv()
 
 REDIS_URL = os.getenv("REDIS_URL")
+DRAGONFLY_URL = os.getenv("DRAGONFLY_URL")
 LLM_MODEL = os.getenv("LLM_MODEL")
 EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL")
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
@@ -74,7 +75,7 @@ def query(
 
 def repl():
     index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
-    client = RedisClient(REDIS_URL)
+    client = RedisClient(DRAGONFLY_URL)
     client.delete("embeddings")
     cache = Cache(client, index, "embeddings", EMBEDDING_DIMENSION, cache_ttl=0)
 

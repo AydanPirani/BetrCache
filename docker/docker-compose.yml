@@ -2,6 +2,22 @@ version: "3.8"
 
 services:
   redis:
-    build: .
+    image: redis:latest
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server"]
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    ulimits:
+      memlock: -1
+    ports:
+      - "6380:6379"
+    volumes:
+      - dragonfly-data:/data
+
+volumes:
+  redis-data:
+  dragonfly-data:
