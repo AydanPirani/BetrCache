@@ -18,13 +18,13 @@ class Cache:
         self.embedding_size = embedding_size
         self.redis_key = redis_key
         self.cache_ttl = cache_ttl
-        self.index_initialized = False
+        self.index_initialized = True
         self.current_id = 0
 
     def load_index(self) -> None:
         logger.debug("Loading index")
         data = self.get_all_embeddings()
-        if not data:
+        if not data and not self.index_initialized:
             self.ann_index.init_index(1, self.embedding_size)
             self.index_initialized = True
             return
@@ -58,8 +58,10 @@ class Cache:
             self.ann_index.init_index(1000, self.embedding_size)
             self.index_initialized = True
 
-        if self.ann_index.get_curr_ct() > self.ann_index.get_max_elements():
+        if self.ann_index.get_curr_ct() >= self.ann_index.get_max_elements():
+            print("RESIZING", self.ann_index.get_max_elements())
             self.ann_index.resize(self.ann_index.get_curr_ct() + 1000)
+            print("RESIZED", self.ann_index.get_max_elements())
 
         self.ann_index.add_pt(embedding, eid)
 

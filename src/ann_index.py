@@ -37,6 +37,7 @@ class HnswAnnIndex(ANNIndex):
         self._init_hnsw()
 
     def _init_hnsw(self):
+        # import pdb; pdb.set_trace()
         self.index = hnswlib.Index(space='cosine', dim=self.dimension)
         # M=16, ef_construction=100 are defaults you can tune
         self.index.init_index(max_elements=self.max_elements, ef_construction=100, M=16)

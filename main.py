@@ -48,6 +48,7 @@ async def query(
     threshold: int = 5,
     sim_threshold: float = 0.8,
 ) -> str:
+    print("INIT", cache.ann_index.get_max_elements())
     logger.info(f"Querying for {prompt}")
     emb = await get_embedding(prompt, emb_opts)
     candidates = cache.semantic_search(emb, threshold)
@@ -63,11 +64,12 @@ async def query(
     logger.debug(f"Best match ({score}): {best.query} ({best.response})")
     if score > sim_threshold:
         return best.response
-    else:
-        logger.debug("No good match found, querying LLM")
-        resp = await get_gpt_response(prompt, gpt_opts)
-        cache.store_embedding(prompt, emb, resp)
-        return resp
+    
+    logger.debug("No good match found, querying LLM")
+    resp = await get_gpt_response(prompt, gpt_opts)
+    cache.store_embedding(prompt, emb, resp)
+    print("AFTER", cache.ann_index.get_max_elements())
+    return resp
 
 
 async def repl():
