@@ -3,6 +3,7 @@ from enum import Enum
 from dataclasses import dataclass
 import httpx
 import asyncio
+import requests
 
 
 class Provider(Enum):
@@ -39,10 +40,10 @@ async def get_gpt_response(prompt: str, options: GPTOptions) -> str:
         "model": options.model,
         "messages": [{"role": "user", "content": options.prefix + prompt}],
     }
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        data = resp.json()
+    
+    resp = requests.post(url, json=payload, headers=headers)
+    resp.raise_for_status()
+    data = resp.json()
     return data["choices"][0]["message"]["content"].strip()
 
 
@@ -55,8 +56,8 @@ async def get_embedding(input: str, options: EmbeddingOptions) -> list[float]:
         "Authorization": f"Bearer {options.api_key}",
     }
     payload = {"model": options.model, "input": input}
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        data = resp.json()
+    
+    resp = requests.post(url, json=payload, headers=headers)
+    resp.raise_for_status()
+    data = resp.json()
     return data["data"][0]["embedding"]

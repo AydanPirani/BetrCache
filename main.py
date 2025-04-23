@@ -1,3 +1,4 @@
+import argparse
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -7,6 +8,7 @@ from src.cache_client import RedisClient
 from src.cache import Cache
 from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
 from src.similarity import cosine_similarity
+from src.utils import logger, setup_logging
 
 load_dotenv()
 
@@ -46,19 +48,23 @@ async def query(
     threshold: int = 5,
     sim_threshold: float = 0.8,
 ) -> str:
+    logger.info(f"Querying for {prompt}")
     emb = await get_embedding(prompt, emb_opts)
     candidates = cache.semantic_search(emb, threshold)
 
     if not candidates:
+        logger.debug("No match found, querying LLM")
         resp = await get_gpt_response(prompt, gpt_opts)
         cache.store_embedding(prompt, emb, resp)
         return resp
 
     best = max(candidates, key=lambda d: cosine_similarity(d.embedding, emb))
     score = cosine_similarity(best.embedding, emb)
+    logger.debug(f"Best match ({score}): {best.query} ({best.response})")
     if score > sim_threshold:
         return best.response
     else:
+        logger.debug("No good match found, querying LLM")
         resp = await get_gpt_response(prompt, gpt_opts)
         cache.store_embedding(prompt, emb, resp)
         return resp
@@ -76,4 +82,18 @@ async def repl():
         print(resp)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Demo application with stdout logging"
+    )
+        
+    parser.add_argument(
+        "--log-level", "--log", "-L",
+        default="INFO",
+        help="logging level; one of DEBUG, INFO, WARNING, ERROR, CRITICAL"
+    )
+    args = parser.parse_args()
+
+    setup_logging(args.log_level)
+    logger.debug("Debugging is now enabled")
+
     asyncio.run(repl())

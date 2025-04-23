@@ -1,10 +1,8 @@
-import json
 from typing import List
 from .cache_client import CacheClient
 from .ann_index import ANNIndex
 from .custom_types import EmbeddingData
-from .utils import get_unix_seconds
-
+from .utils import get_unix_seconds, logger
 
 class Cache:
     def __init__(
@@ -24,6 +22,7 @@ class Cache:
         self.current_id = 0
 
     def load_index(self) -> None:
+        logger.debug("Loading index")
         data = self.get_all_embeddings()
         if not data:
             self.ann_index.init_index(1, self.embedding_size)
@@ -40,12 +39,17 @@ class Cache:
 
     def store_embedding(self, query: str, embedding: list[float], response: str) -> None:
         if len(embedding) != self.embedding_size:
-            raise ValueError("Embedding size mismatch")
+            logger.error(f"Embedding size mismatch: {len(embedding)} != {self.embedding_size}")
+            exit(1)
+        
+        logger.debug(f"Storing embedding for {query}")
+
         eid = self.current_id
         self.current_id += 1
         data = EmbeddingData(
             id=eid, query=query, embedding=embedding, response=response, timestamp=get_unix_seconds()
         )
+        
         self.client.h_set(self.redis_key, str(eid), data.json())
         if self.cache_ttl:
             self.client.expire(self.redis_key, self.cache_ttl)
@@ -61,7 +65,9 @@ class Cache:
 
     def semantic_search(self, embedding: list[float], k: int) -> List[EmbeddingData]:
         if len(embedding) != self.embedding_size:
-            raise ValueError("Embedding size mismatch")
+            logger.error(f"Embedding size mismatch: {len(embedding)} != {self.embedding_size}")
+            exit(1)
+
         if not self.index_initialized:
             self.load_index()
 
