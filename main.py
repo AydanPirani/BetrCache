@@ -1,18 +1,20 @@
 import argparse
+from typing import Optional
 
 from PIL import Image
 
-from src.api import get_embedding, get_gpt_response
+from src.api import get_embedding, get_gpt_response, LLMInput
 from src.config import *
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
 from src.cache import CacheConfig, EmbeddingCache
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
+# from transformers import CLIPProcessor, CLIPModel
+
 
 def query(
-    image: Image.Image,
-    prompt: str,
+    llm_input: LLMInput,
     gpt_opts: GPTOptions,
     emb_opts: EmbeddingOptions,
     cache: EmbeddingCache,
@@ -20,17 +22,19 @@ def query(
     sim_threshold: float = 0.8,
 ) -> str:
     
-    if image is not None:
+    prompt = llm_input.text
+    
+    if llm_input.image is not None:
         logger.info(f"Querying for image, {prompt}")
     else:
         logger.info(f"Querying for {prompt}")
     
-    emb = get_embedding(image=image, prompt=prompt, options=emb_opts)
+    emb = get_embedding(llm_input=llm_input, options=emb_opts)
     candidates = cache.semantic_search("text", emb, threshold)
 
     if not candidates:
         logger.debug("No match found, querying LLM")
-        resp = get_gpt_response(prompt=prompt, options=gpt_opts)
+        resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
         cache.store_embedding("text", prompt, emb, resp)
         return resp
 
@@ -41,7 +45,7 @@ def query(
         return best.response
     
     logger.debug("No good match found, querying LLM")
-    resp = get_gpt_response(prompt, gpt_opts)
+    resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
     logger.info("Got response from LLM")
     cache.store_embedding("text", prompt, emb, resp)
     return resp
@@ -76,8 +80,12 @@ def repl():
     )
 
     while True:
-        prompt = input("> ")
-        resp = query(image=None, prompt=prompt, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
+        text = input("text > ")
+        # image = input("image path>")
+        image_path="cat.jpg"
+        llm_input = LLMInput(text=text, image=image_path)
+
+        resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
         # print(resp)
   
         # image_path = input("Enter the path to the image: ")
