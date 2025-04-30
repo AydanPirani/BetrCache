@@ -50,16 +50,15 @@ def get_embedding(image: Image.Image, prompt: str, options: EmbeddingOptions) ->
     resp.raise_for_status()
     data = resp.json()
     return data["data"][0]["embedding"]
-    # if img is not None: 
-        
 
-    # if isinstance(input, str): # text
-    #     inputs = processor(text=[input], return_tensors="pt", padding=True)
-    #     text_features = model.get_text_features(**inputs)
-    #     return text_features.detach().numpy().flatten()
-    # elif isinstance(input, Image): # images
+    # if img is not None: 
     #     inputs = processor(images=input, return_tensors="pt")
     #     image_features = model.get_image_features(**inputs)
-    #     return image_features.detach().numpy().flatten()
-    # else:
-    #     raise ValueError("Unsupported input type")
+    #     img_emb = image_features.detach().numpy().flatten()
+
+    # if prompt is not None: # text
+    #     inputs = processor(text=[input], return_tensors="pt", padding=True)
+    #     text_features = model.get_text_features(**inputs)
+    #     text_emb = text_features.detach().numpy().flatten()
+    
+    # return [img_emb, text_emb]
