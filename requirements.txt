@@ -3,3 +3,6 @@ httpx
 redis
 python-dotenv
 pydantic
+transformers
+torch
+torchvision

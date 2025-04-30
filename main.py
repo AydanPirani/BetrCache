@@ -8,10 +8,9 @@ from src.config import *
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
 from src.cache import CacheConfig, EmbeddingCache
+from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
-# from transformers import CLIPProcessor, CLIPModel
-
 
 def query(
     llm_input: LLMInput,
@@ -38,11 +37,11 @@ def query(
         cache.store_embedding("text", prompt, emb, resp)
         return resp
 
-    best = max(candidates, key=lambda d: cosine_similarity(d.embedding, emb))
-    score = cosine_similarity(best.embedding, emb)
-    logger.debug(f"Best match ({score}): {best.query} ({best.response})")
-    if score > sim_threshold:
-        return best.response
+    # best = max(candidates, key=lambda d: cosine_similarity(d.embedding, emb))
+    # score = cosine_similarity(best.embedding, emb)
+    # logger.debug(f"Best match ({score}): {best.query} ({best.response})")
+    # if score > sim_threshold:
+    #     return best.response
     
     logger.debug("No good match found, querying LLM")
     resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
