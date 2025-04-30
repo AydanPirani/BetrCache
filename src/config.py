@@ -25,7 +25,7 @@ class EmbeddingOptions:
     api_key: str
 
 
-LLM_PROVIDER = Provider.OPENROUTER
+LLM_PROVIDER = Provider.OPENAI
 EMB_PROVIDER = Provider.OPENAI
 
 
