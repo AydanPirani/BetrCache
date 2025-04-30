@@ -118,6 +118,7 @@ class EmbeddingCache:
 
         k = min(k, curr)
         results = cfg.ann_index.search_knn(embedding, k)
+        print("RESULTS", results)
         ids = [str(r[0]) for r in results]
         raw = cfg.client.hm_get(self._redis_key(modality), ids)
 

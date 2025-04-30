@@ -1,72 +1,37 @@
 import argparse
-import os
-from dotenv import load_dotenv
-from PIL import Image
-from io import BytesIO
-import requests
 
+from PIL import Image
+
+from src.api import get_embedding, get_gpt_response
+from src.config import *
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
-from src.cache import Cache, CacheConfig, EmbeddingCache
-from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
+from src.cache import CacheConfig, EmbeddingCache
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
-# from transformers import CLIPProcessor, CLIPModel
-
-
-load_dotenv()
-
-REDIS_URL = os.getenv("REDIS_URL")
-LLM_MODEL = os.getenv("LLM_MODEL")
-EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL")
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
-
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
-THRESHOLD = int(os.getenv("THRESHOLD", "5"))
-SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.8"))
-
-LLM_PROVIDER = Provider.OPENAI
-EMB_PROVIDER = Provider.OPENAI
-
-gpt_key = OPENAI_KEY if LLM_PROVIDER == Provider.OPENAI else OPENROUTER_KEY
-emb_key = OPENAI_KEY if EMB_PROVIDER == Provider.OPENAI else OPENROUTER_KEY
-
-gpt_opts = GPTOptions(
-    model=LLM_MODEL,
-    provider=LLM_PROVIDER,
-    api_key=gpt_key,
-    prefix="You are a search assistant. Give me a response in 5 sentences."
-)
-emb_opts = EmbeddingOptions(
-    model=EMBEDDINGS_MODEL,
-    provider=EMB_PROVIDER,
-    api_key=emb_key
-)
 
 def query(
-    img: Image.Image,
+    image: Image.Image,
     prompt: str,
     gpt_opts: GPTOptions,
     emb_opts: EmbeddingOptions,
-    cache: Cache,
+    cache: EmbeddingCache,
     threshold: int = 5,
     sim_threshold: float = 0.8,
 ) -> str:
     
-    print("INIT", cache.ann_index.get_max_elements())
-    if img is not None:
+    if image is not None:
         logger.info(f"Querying for image, {prompt}")
     else:
         logger.info(f"Querying for {prompt}")
     
-    emb = get_embedding(img, prompt, emb_opts)
-    candidates = cache.semantic_search(emb, threshold)
+    emb = get_embedding(image=image, prompt=prompt, options=emb_opts)
+    candidates = cache.semantic_search("text", emb, threshold)
 
     if not candidates:
         logger.debug("No match found, querying LLM")
-        resp = get_gpt_response(prompt, gpt_opts)
-        cache.store_embedding(prompt, emb, resp)
+        resp = get_gpt_response(prompt=prompt, options=gpt_opts)
+        cache.store_embedding("text", prompt, emb, resp)
         return resp
 
     best = max(candidates, key=lambda d: cosine_similarity(d.embedding, emb))
@@ -78,17 +43,16 @@ def query(
     logger.debug("No good match found, querying LLM")
     resp = get_gpt_response(prompt, gpt_opts)
     logger.info("Got response from LLM")
-    cache.store_embedding(prompt, emb, resp)
-    print("AFTER", cache.ann_index.get_max_elements())
+    cache.store_embedding("text", prompt, emb, resp)
     return resp
 
 
 def repl():
-    text_ann_index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
+    text_ann_index = HnswAnnIndex(1000, TEXT_EMBEDDING_DIMENSION)
     text_client = RedisClient(REDIS_URL)
     text_client.delete("embeddings:text")
 
-    image_ann_index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
+    image_ann_index = HnswAnnIndex(1000, IMAGE_EMBEDDING_DIMENSION)
     image_client = RedisClient(REDIS_URL)
     image_client.delete("embeddings:image")
 
@@ -96,38 +60,38 @@ def repl():
         "text": CacheConfig(
             client=text_client,
             ann_index=text_ann_index,
-            embedding_size=768
+            embedding_size=TEXT_EMBEDDING_DIMENSION
         ),
         "image": CacheConfig(
             client=image_client,
             ann_index=image_ann_index,
-            embedding_size=512
+            embedding_size=IMAGE_EMBEDDING_DIMENSION
         ),
     }
     
     cache = EmbeddingCache(
         configs=configs,
-        redis_key_prefix="myapp:embeddings",
+        redis_key_prefix="embeddings",
         cache_ttl=3600,
     )
 
     while True:
-        # prompt = input("> ")
-        # resp = query(prompt, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
+        prompt = input("> ")
+        resp = query(image=None, prompt=prompt, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
         # print(resp)
   
-        image_path = input("Enter the path to the image: ")
-        if image_path != None:
-            try:
-                image = Image.open(image_path)
-            except Exception as e:
-                print(f"Error loading image: {e}")
-                continue
+        # image_path = input("Enter the path to the image: ")
+        # if image_path != None:
+        #     try:
+        #         image = Image.open(image_path)
+        #     except Exception as e:
+        #         print(f"Error loading image: {e}")
+        #         continue
         
+        # image = None
         # Prompt for text input
-        text_input = input("Enter the text query: ")
+        # text_input = input("Enter the text query: ")
 
-        resp = query(image, text_input, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
         print(resp)
 
 
