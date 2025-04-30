@@ -3,12 +3,17 @@ from dataclasses import dataclass
 import os
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 class Provider(Enum):
     OPENAI = "openai"
     OPENROUTER = "openrouter"
+
+class Modality(Enum):
+    TEXT = "text"
+    IMAGE = "image"
+    MULTIMODAL = "multimodal"
+
 
 @dataclass
 class GPTOptions:
@@ -35,8 +40,10 @@ EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL")
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
 
-TEXT_EMBEDDING_DIMENSION = int(os.getenv("TEXT_EMBEDDING_DIMENSION", "768"))
+TEXT_EMBEDDING_DIMENSION = int(os.getenv("TEXT_EMBEDDING_DIMENSION", "1536"))
 IMAGE_EMBEDDING_DIMENSION = int(os.getenv("IMAGE_EMBEDDING_DIMENSION", "512"))
+MULTIMODAL_EMBEDDING_DIMENSION = IMAGE_EMBEDDING_DIMENSION * 2
+
 THRESHOLD = int(os.getenv("THRESHOLD", "5"))
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.8"))
 

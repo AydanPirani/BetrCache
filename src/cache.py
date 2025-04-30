@@ -10,6 +10,8 @@ from .cache_client import CacheClient
 from .ann_index import ANNIndex
 from .custom_types import EmbeddingData
 from .utils import get_unix_seconds, logger
+from .config import Modality
+from .api import LLMInput
 
 @dataclass
 class CacheConfig:
@@ -23,7 +25,7 @@ class CacheConfig:
 class EmbeddingCache:
     def __init__(
         self,
-        configs: Dict[str, CacheConfig],
+        configs: Dict[Modality, CacheConfig],
         redis_key_prefix: str,
         cache_ttl: int,
     ):
@@ -37,11 +39,13 @@ class EmbeddingCache:
         self.cache_ttl = cache_ttl
 
 
-    def _redis_key(self, modality: str) -> str:
-        return f"{self.redis_key_prefix}:{modality}"
+    def _redis_key(self, modality: Modality) -> str:
+        key = f"{self.redis_key_prefix}:{modality.value}"
+        print("KEY", key)
+        return key
 
 
-    def _load_index(self, modality: str) -> None:
+    def _load_index(self, modality: Modality) -> None:
         cfg = self.configs[modality]
         logger.debug(f"Loading '{modality}' index")
         data = self.get_all_embeddings(modality)
@@ -59,8 +63,8 @@ class EmbeddingCache:
 
     def store_embedding(
         self,
-        modality: str,
-        query: str,
+        modality: Modality,
+        llm_input: LLMInput,
         embedding: List[float],
         response: str,
     ) -> None:
@@ -74,7 +78,8 @@ class EmbeddingCache:
 
         payload = EmbeddingData(
             id=eid,
-            query=query,
+            query=llm_input.text,
+            image=llm_input.image,
             embedding=embedding,
             response=response,
             timestamp=get_unix_seconds()
@@ -100,7 +105,7 @@ class EmbeddingCache:
 
     def semantic_search(
         self,
-        modality: str,
+        modality: Modality,
         embedding: List[float],
         k: int
     ) -> List[EmbeddingData]:
@@ -129,6 +134,6 @@ class EmbeddingCache:
         ]
 
 
-    def get_all_embeddings(self, modality: str) -> List[EmbeddingData]:
+    def get_all_embeddings(self, modality: Modality) -> List[EmbeddingData]:
         raw = self.configs[modality].client.h_get_all(self._redis_key(modality))
         return [EmbeddingData.parse_raw(v) for v in raw.values()]

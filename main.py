@@ -1,4 +1,5 @@
 import argparse
+from time import sleep
 from typing import Optional
 
 from PIL import Image
@@ -11,6 +12,7 @@ from src.cache import CacheConfig, EmbeddingCache
 from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
+import time
 
 def query(
     llm_input: LLMInput,
@@ -23,56 +25,70 @@ def query(
     
     prompt = llm_input.text
 
-    cache_str = "embeddings:image" if llm_input.image is not None else "embeddings:text"
+    modality = Modality.MULTIMODAL if llm_input.image != "" else Modality.TEXT
     
-    if llm_input.image is not None:
+    if llm_input.image != "" :
         logger.info(f"Querying for image, {prompt}")
     else:
         logger.info(f"Querying for {prompt}")
-    
+
     text_emb, img_emb = get_embedding(llm_input=llm_input, options=emb_opts)
+    emb = [*text_emb, *img_emb]
 
-    candidates = cache.semantic_search(cache_str, emb, threshold)
+    candidates = cache.semantic_search(modality=modality, embedding=emb, k=threshold)
+    
 
+    def red(c):
+        x, y = cosine_similarity(modality, emb, c.embedding)
+        return x**2 + y**2
+
+    def cmp(c):
+        text_score, image_score = cosine_similarity(modality, a=emb, b=c.embedding)
+        return text_score > sim_threshold and image_score > sim_threshold
+
+    candidates = list(filter(cmp, candidates))
+    
     if not candidates:
         logger.debug("No match found, querying LLM")
         resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
-        cache.store_embedding(cache_str, prompt, emb, resp)
+        cache.store_embedding(modality=modality, llm_input=llm_input, embedding=emb, response=resp)
         return resp
-
-    # best = max(candidates, key=lambda d: cosine_similarity(d.embedding, emb))
-    # score = cosine_similarity(best.embedding, emb)
-    # logger.debug(f"Best match ({score}): {best.query} ({best.response})")
-    # if score > sim_threshold:
-    #     return best.response
+    
+    best = max(candidates, key=red)
+    text_score, image_score = cosine_similarity(modality, a=emb, b=best.embedding)
+    
+    logger.debug(f"Best match ({text_score}, {image_score}): {best.query} ({best.response})")
+    if text_score > sim_threshold and image_score > sim_threshold:
+        return best.response
     
     logger.debug("No good match found, querying LLM")
     resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
     logger.info("Got response from LLM")
-    cache.store_embedding("text", prompt, emb, resp)
+    cache.store_embedding(modality=modality, llm_input=llm_input, embedding=emb, response=resp)
     return resp
 
 
 def repl():
+
     text_ann_index = HnswAnnIndex(1000, TEXT_EMBEDDING_DIMENSION)
     text_client = RedisClient(REDIS_URL)
     text_client.delete("embeddings:text")
 
-    image_ann_index = HnswAnnIndex(1000, IMAGE_EMBEDDING_DIMENSION)
-    image_client = RedisClient(REDIS_URL)
-    image_client.delete("embeddings:image")
+    multimodal_ann_index = HnswAnnIndex(1000, MULTIMODAL_EMBEDDING_DIMENSION)
+    multimodal_client = RedisClient(REDIS_URL)
+    multimodal_client.delete("embeddings:multimodal")
 
     configs = {
-        "text": CacheConfig(
+        Modality.TEXT: CacheConfig(
             client=text_client,
             ann_index=text_ann_index,
             embedding_size=TEXT_EMBEDDING_DIMENSION
         ),
-        "image": CacheConfig(
-            client=image_client,
-            ann_index=image_ann_index,
-            embedding_size=IMAGE_EMBEDDING_DIMENSION
-        ),
+        Modality.MULTIMODAL: CacheConfig(
+            client=multimodal_client,
+            ann_index=multimodal_ann_index,
+            embedding_size=MULTIMODAL_EMBEDDING_DIMENSION
+        )
     }
     
     cache = EmbeddingCache(
@@ -82,27 +98,19 @@ def repl():
     )
 
     while True:
-        text = input("text > ")
-        # image = input("image path>")
-        image_path="cat.jpg"
+        text = input("Enter text prompt: ")
+        image_path = input("Enter image path: ")
+
         llm_input = LLMInput(text=text, image=image_path)
-
-        resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
-        # print(resp)
-  
-        # image_path = input("Enter the path to the image: ")
-        # if image_path != None:
-        #     try:
-        #         image = Image.open(image_path)
-        #     except Exception as e:
-        #         print(f"Error loading image: {e}")
-        #         continue
         
-        # image = None
-        # Prompt for text input
-        # text_input = input("Enter the text query: ")
+        start_time = time.time()
+        resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
+        latency = time.time() - start_time
 
+        print(f"Response: {resp}")
+        print(f"Query latency: {latency:.3f} seconds")
         print(resp)
+        sleep(1)
 
 
 if __name__ == "__main__":
@@ -112,7 +120,7 @@ if __name__ == "__main__":
         
     parser.add_argument(
         "--log-level", "--log", "-L",
-        default="INFO",
+        default="DEBUG",
         help="logging level; one of DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
     args = parser.parse_args()

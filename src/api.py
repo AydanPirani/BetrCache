@@ -15,14 +15,14 @@ tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 @dataclass
 class LLMInput:
     text: str
-    image: Optional[str] = None
+    image: str = ""
 
 
 def get_gpt_response(llm_input: LLMInput, options: GPTOptions) -> str:
     logger.debug("IN GPT RESPONSE")
     client = OpenAI(api_key=options.api_key)
 
-    if llm_input.image is not None:
+    if llm_input.image != "":
         base64_image = encode_image(llm_input.image)
 
         completion = client.chat.completions.create(
@@ -52,7 +52,8 @@ def get_gpt_response(llm_input: LLMInput, options: GPTOptions) -> str:
 
 
 def get_embedding(llm_input: LLMInput, options: EmbeddingOptions) -> list[float]:
-    if llm_input.image is None: 
+    print(llm_input.image)
+    if len(llm_input.image) == 0: 
         url = "https://api.openai.com/v1/embeddings"
 
         prompt = llm_input.text
@@ -66,19 +67,20 @@ def get_embedding(llm_input: LLMInput, options: EmbeddingOptions) -> list[float]
         resp = requests.post(url, json=payload, headers=headers)
         resp.raise_for_status()
         data = resp.json()
-        return [data["data"][0]["embedding"], None]
+        return [data["data"][0]["embedding"], []]
     else: 
         #image
         image_path = llm_input.image
         img = Image.open(image_path)
         inputs = processor(images=img, return_tensors="pt")
         img_emb = model.get_image_features(**inputs)
-        # img_emb = image_features.detach().numpy().flatten()
+        img_emb = img_emb.detach().numpy().flatten()
 
         #text
         inputs = tokenizer([llm_input.text], padding=True, return_tensors="pt")
         text_emb = model.get_text_features(**inputs)
-        # text_emb = text_emb.detach().numpy().flatten()
+        text_emb = text_emb.detach().numpy().flatten()
+        
         return [text_emb, img_emb]
 
 # Function to encode the image
