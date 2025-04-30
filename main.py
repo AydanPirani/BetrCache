@@ -21,7 +21,7 @@ EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
 THRESHOLD = int(os.getenv("THRESHOLD", "5"))
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.8"))
 
-LLM_PROVIDER = Provider.OPENROUTER
+LLM_PROVIDER = Provider.OPENAI
 EMB_PROVIDER = Provider.OPENAI
 
 gpt_key = OPENAI_KEY if LLM_PROVIDER == Provider.OPENAI else OPENROUTER_KEY
@@ -31,7 +31,8 @@ gpt_opts = GPTOptions(
     model=LLM_MODEL,
     provider=LLM_PROVIDER,
     api_key=gpt_key,
-    prefix="You are a search assistant. Give me a response in 5 sentences."
+    prefix="You are a search assistant. Give me a response in 5 sentences.",
+    image_path="cat.jpg"  # Optional image input
 )
 emb_opts = EmbeddingOptions(
     model=EMBEDDINGS_MODEL,
