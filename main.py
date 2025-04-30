@@ -1,6 +1,9 @@
 import argparse
 import os
 from dotenv import load_dotenv
+from PIL import Image
+from io import BytesIO
+import requests
 
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
@@ -8,6 +11,8 @@ from src.cache import Cache
 from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
+# from transformers import CLIPProcessor, CLIPModel
+
 
 load_dotenv()
 
@@ -41,6 +46,7 @@ emb_opts = EmbeddingOptions(
 )
 
 def query(
+    img: Image.Image,
     prompt: str,
     gpt_opts: GPTOptions,
     emb_opts: EmbeddingOptions,
@@ -48,9 +54,14 @@ def query(
     threshold: int = 5,
     sim_threshold: float = 0.8,
 ) -> str:
+    
     print("INIT", cache.ann_index.get_max_elements())
-    logger.info(f"Querying for {prompt}")
-    emb = get_embedding(prompt, emb_opts)
+    if img is not None:
+        logger.info(f"Querying for image, {prompt}")
+    else:
+        logger.info(f"Querying for {prompt}")
+    
+    emb = get_embedding(img, prompt, emb_opts)
     candidates = cache.semantic_search(emb, threshold)
 
     if not candidates:
@@ -80,9 +91,24 @@ def repl():
     cache = Cache(client, index, "embeddings", EMBEDDING_DIMENSION, cache_ttl=0)
 
     while True:
-        prompt = input("> ")
-        resp = query(prompt, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
+        # prompt = input("> ")
+        # resp = query(prompt, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
+        # print(resp)
+  
+        image_path = input("Enter the path to the image: ")
+        if image_path != None:
+            try:
+                image = Image.open(image_path)
+            except Exception as e:
+                print(f"Error loading image: {e}")
+                continue
+        
+        # Prompt for text input
+        text_input = input("Enter the text query: ")
+
+        resp = query(image, text_input, gpt_opts, emb_opts, cache, THRESHOLD, SIMILARITY_THRESHOLD)
         print(resp)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

@@ -9,7 +9,6 @@ class Provider(Enum):
     OPENAI = "openai"
     OPENROUTER = "openrouter"
 
-
 @dataclass
 class GPTOptions:
     model: str
@@ -24,6 +23,9 @@ class EmbeddingOptions:
     model: str
     provider: Provider
     api_key: str
+
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
 
 # Function to encode the image
@@ -67,19 +69,3 @@ def get_gpt_response(prompt: str, opts: GPTOptions) -> str:
             input=prompt
         )
         return response.output_text
-
-
-def get_embedding(input: str, options: EmbeddingOptions) -> list[float]:
-    if options.provider == Provider.OPENROUTER:
-        raise NotImplementedError("OpenRouter embeddings not supported")
-    url = "https://api.openai.com/v1/embeddings"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {options.api_key}",
-    }
-    payload = {"model": options.model, "input": input}
-    
-    resp = requests.post(url, json=payload, headers=headers)
-    resp.raise_for_status()
-    data = resp.json()
-    return data["data"][0]["embedding"]
