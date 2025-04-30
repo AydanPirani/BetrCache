@@ -36,7 +36,8 @@ gpt_opts = GPTOptions(
     model=LLM_MODEL,
     provider=LLM_PROVIDER,
     api_key=gpt_key,
-    prefix="You are a search assistant. Give me a response in 5 sentences."
+    prefix="You are a search assistant. Give me a response in 5 sentences.",
+    image_path="cat.jpg"  # Optional image input
 )
 emb_opts = EmbeddingOptions(
     model=EMBEDDINGS_MODEL,
