@@ -7,7 +7,7 @@ import requests
 
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
-from src.cache import Cache
+from src.cache import Cache, CacheConfig, EmbeddingCache
 from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
@@ -84,10 +84,32 @@ def query(
 
 
 def repl():
-    index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
-    client = RedisClient(REDIS_URL)
-    client.delete("embeddings")
-    cache = Cache(client, index, "embeddings", EMBEDDING_DIMENSION, cache_ttl=0)
+    text_ann_index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
+    text_client = RedisClient(REDIS_URL)
+    text_client.delete("embeddings:text")
+
+    image_ann_index = HnswAnnIndex(1000, EMBEDDING_DIMENSION)
+    image_client = RedisClient(REDIS_URL)
+    image_client.delete("embeddings:image")
+
+    configs = {
+        "text": CacheConfig(
+            client=text_client,
+            ann_index=text_ann_index,
+            embedding_size=768
+        ),
+        "image": CacheConfig(
+            client=image_client,
+            ann_index=image_ann_index,
+            embedding_size=512
+        ),
+    }
+    
+    cache = EmbeddingCache(
+        configs=configs,
+        redis_key_prefix="myapp:embeddings",
+        cache_ttl=3600,
+    )
 
     while True:
         # prompt = input("> ")
