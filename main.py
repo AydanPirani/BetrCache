@@ -22,19 +22,22 @@ def query(
 ) -> str:
     
     prompt = llm_input.text
+
+    cache_str = "embeddings:image" if llm_input.image is not None else "embeddings:text"
     
     if llm_input.image is not None:
         logger.info(f"Querying for image, {prompt}")
     else:
         logger.info(f"Querying for {prompt}")
     
-    emb = get_embedding(llm_input=llm_input, options=emb_opts)
-    candidates = cache.semantic_search("text", emb, threshold)
+    text_emb, img_emb = get_embedding(llm_input=llm_input, options=emb_opts)
+
+    candidates = cache.semantic_search(cache_str, emb, threshold)
 
     if not candidates:
         logger.debug("No match found, querying LLM")
         resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
-        cache.store_embedding("text", prompt, emb, resp)
+        cache.store_embedding(cache_str, prompt, emb, resp)
         return resp
 
     # best = max(candidates, key=lambda d: cosine_similarity(d.embedding, emb))
