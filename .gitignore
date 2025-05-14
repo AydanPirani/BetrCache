@@ -2,4 +2,6 @@ venv/
 .env
 **/__pycache__/**
 *.log
-betr_env/*
+betr_env/
+clip/
+target/

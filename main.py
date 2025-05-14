@@ -12,7 +12,11 @@ from src.cache import CacheConfig, EmbeddingCache
 from src.api import GPTOptions, EmbeddingOptions, Provider, get_embedding, get_gpt_response
 from src.similarity import cosine_similarity
 from src.utils import logger, setup_logging
-import time
+
+load_dotenv()
+
+REDIS_URL = os.getenv("REDIS_URL")
+DRAGONFLY_URL = os.getenv("DRAGONFLY_URL")
 
 def query(
     llm_input: LLMInput,
@@ -69,7 +73,7 @@ def query(
 
 
 def repl():
-
+  # Replace REDIS_URL with DRAGONFLY_URL to use DRAGONFLY DB
     text_ann_index = HnswAnnIndex(1000, TEXT_EMBEDDING_DIMENSION)
     text_client = RedisClient(REDIS_URL)
     text_client.delete("embeddings:text")
