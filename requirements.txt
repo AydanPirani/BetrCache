@@ -6,3 +6,5 @@ pydantic
 transformers
 torch
 torchvision
+bs4
+openai

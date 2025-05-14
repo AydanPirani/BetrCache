@@ -3,3 +3,5 @@ venv/
 **/__pycache__/**
 *.log
 betr_env/*
+/target
+/flickr30k-images

@@ -4,7 +4,7 @@ from typing import Optional
 
 from PIL import Image
 
-from src.api import get_embedding, get_gpt_response, LLMInput
+from src.api import get_embedding, get_gpt_response, LLMInput, LLMOutput
 from src.config import *
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
@@ -21,9 +21,10 @@ def query(
     cache: EmbeddingCache,
     threshold: int = 5,
     sim_threshold: float = 0.8,
-) -> str:
+) -> LLMOutput:
     
     prompt = llm_input.text
+    output = LLMOutput()
 
     modality = Modality.MULTIMODAL if llm_input.image != "" else Modality.TEXT
     
@@ -52,20 +53,28 @@ def query(
         logger.debug("No match found, querying LLM")
         resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
         cache.store_embedding(modality=modality, llm_input=llm_input, embedding=emb, response=resp)
-        return resp
+
+        output.text = resp
+        return output
     
     best = max(candidates, key=red)
     text_score, image_score = cosine_similarity(modality, a=emb, b=best.embedding)
     
     logger.debug(f"Best match ({text_score}, {image_score}): {best.query} ({best.response})")
     if text_score > sim_threshold and image_score > sim_threshold:
-        return best.response
+        output.text = best.response
+        output.is_hit = True
+        output.best_candidate = best
+
+        return output
     
     logger.debug("No good match found, querying LLM")
     resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
     logger.info("Got response from LLM")
     cache.store_embedding(modality=modality, llm_input=llm_input, embedding=emb, response=resp)
-    return resp
+
+    output.text = resp
+    return output
 
 
 def repl():
@@ -104,7 +113,8 @@ def repl():
         llm_input = LLMInput(text=text, image=image_path)
         
         start_time = time.time()
-        resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
+        exp_resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
+        act_resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
         latency = time.time() - start_time
 
         print(f"Response: {resp}")

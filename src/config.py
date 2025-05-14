@@ -33,7 +33,6 @@ class EmbeddingOptions:
 LLM_PROVIDER = Provider.OPENAI
 EMB_PROVIDER = Provider.OPENAI
 
-
 REDIS_URL = os.getenv("REDIS_URL")
 LLM_MODEL = os.getenv("LLM_MODEL")
 EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL")

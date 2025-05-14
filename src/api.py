@@ -4,6 +4,7 @@ from PIL import Image
 from transformers import AutoTokenizer, CLIPProcessor, CLIPModel
 from src.config import *
 from src.utils import logger
+from src.custom_types import EmbeddingData
 from typing import Optional
 import base64
 from dataclasses import dataclass
@@ -16,6 +17,12 @@ tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 class LLMInput:
     text: str
     image: str = ""
+
+@dataclass
+class LLMOutput:
+    text: str = ""
+    is_hit: bool = False
+    best_candidate: EmbeddingData = None
 
 
 def get_gpt_response(llm_input: LLMInput, options: GPTOptions) -> str:
