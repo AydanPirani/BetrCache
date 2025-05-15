@@ -9,9 +9,18 @@ from typing import Optional
 import base64
 from dataclasses import dataclass
 
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from sentence_transformers import SentenceTransformer
+
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+
+caption_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+caption_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+
+# embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+embed_model = SentenceTransformer("All-MPNet-Base-V2")
 
 @dataclass
 class LLMInput:
@@ -59,7 +68,9 @@ def get_gpt_response(llm_input: LLMInput, options: GPTOptions) -> str:
 
 
 def get_embedding(llm_input: LLMInput, options: EmbeddingOptions) -> list[float]:
-    print(llm_input.image)
+    return twostep_get_embedding(llm_input, options)
+
+def singlestep_get_embedding(llm_input: LLMInput, options: EmbeddingOptions) -> list[float]:
     if len(llm_input.image) == 0: 
         url = "https://api.openai.com/v1/embeddings"
 
@@ -89,6 +100,24 @@ def get_embedding(llm_input: LLMInput, options: EmbeddingOptions) -> list[float]
         text_emb = text_emb.detach().numpy().flatten()
         
         return [text_emb, img_emb]
+
+def twostep_get_embedding(llm_input: LLMInput, options: EmbeddingOptions) -> list[float]:
+    # convert image to text using local captioning model
+    assert(llm_input.image != "")
+
+    img = Image.open(llm_input.image)
+    cap_inputs = caption_processor(images=img, return_tensors="pt")
+    cap_ids = caption_model.generate(**cap_inputs, max_length=500)
+    caption = caption_processor.decode(cap_ids[0], skip_special_tokens=True)
+    text_to_embed = f"{llm_input.text}.{caption}".strip()
+
+    embedding = embed_model.encode(
+        text_to_embed,
+        show_progress_bar=True,
+    )
+
+    return [embedding, []]
+
 
 # Function to encode the image
 def encode_image(image_path):

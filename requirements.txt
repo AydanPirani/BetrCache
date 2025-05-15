@@ -12,3 +12,4 @@ pandas
 matplotlib
 numpy
 seaborn
+sentence_transformers
