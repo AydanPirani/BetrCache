@@ -48,6 +48,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 3. Set up Redis
+```bash
+cd docker
+docker-compose up
+```
+
+The Redis server runs by default on `localhost:6379`.
+
 ### 3. Set up environment variables
 
 Create a `.env` file in the project root and add the following environment variables:
