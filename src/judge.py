@@ -1,6 +1,6 @@
 from openai import OpenAI
 from src.config import GPTOptions, EmbeddingOptions
-from src.api import get_embedding, LLMInput
+from src.api import singlestep_get_embedding, LLMInput
 from math import sqrt
 
 MAX_SCORE = 100
@@ -13,13 +13,13 @@ class SimilarityScorer:
 
     def similarity_score(self, text_a: str, text_b: str) -> float:
         """
-        Returns a similarity score between 0 (no similarity) and 1000 (identical) for text_a and text_b.
+        Returns a similarity score between 0 (no similarity) and 100 (identical) for text_a and text_b.
         """
         system_message = {
             "role": "system",
             "content": (
                 "You are a semantic similarity evaluator. "
-                "Given two texts, compute how semantically similar they are on a scale from 0 to 1000, "
+                "Given two texts, compute how semantically similar they are on a scale from 0 to 100, "
                 "where 0 means completely unrelated and 100 means identical in meaning. "
                 "Respond in the following format XX.YY;<REASON>, where <REASON> should be replaced with a short scoring rationale."
             )
@@ -47,8 +47,8 @@ class SimilarityScorer:
         # Compute cosine similarity
         a = LLMInput(text=text_a)
         b = LLMInput(text=text_b)
-        emb_a = get_embedding(a, self.embedding_options)[0]
-        emb_b = get_embedding(b, self.embedding_options)[0]
+        emb_a = singlestep_get_embedding(a, self.embedding_options)[0]
+        emb_b = singlestep_get_embedding(b, self.embedding_options)[0]
 
         dot = sum(x * y for x, y in zip(emb_a, emb_b))
         norm_a = sqrt(sum(x * x for x in emb_a))
