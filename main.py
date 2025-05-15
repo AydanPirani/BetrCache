@@ -4,7 +4,7 @@ from typing import Optional
 
 from PIL import Image
 
-from src.api import get_embedding, get_gpt_response, LLMInput, LLMOutput
+from src.api import get_embedding, get_gpt_response, LLMInput, LLMOutput, twostep_get_embedding
 from src.config import *
 from src.ann_index import HnswAnnIndex
 from src.cache_client import RedisClient
@@ -113,13 +113,11 @@ def repl():
         llm_input = LLMInput(text=text, image=image_path)
         
         start_time = time.time()
-        exp_resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
-        act_resp = get_gpt_response(llm_input=llm_input, options=gpt_opts)
+        resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
         latency = time.time() - start_time
 
         print(f"Response: {resp}")
         print(f"Query latency: {latency:.3f} seconds")
-        print(resp)
         sleep(1)
 
 
