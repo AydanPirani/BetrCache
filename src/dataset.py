@@ -1,9 +1,11 @@
 from bs4 import BeautifulSoup
 import os
-from random import sample
+import random
 
 def get_dataset(folder = "flickr30k-images", captions_file = "flickr30k_captions.txt", num_return = 100):
     images = os.listdir(folder)
+
+    random.seed(42)
 
     dataset = {}
     with open(captions_file, "r") as file:
@@ -11,7 +13,7 @@ def get_dataset(folder = "flickr30k-images", captions_file = "flickr30k_captions
 
     soup = BeautifulSoup(text, 'html.parser')
 
-    random_indexes = sample(range(len(images)), num_return)
+    random_indexes = random.sample(range(len(images)), num_return)
 
     for i in random_indexes:
         img = images[i]

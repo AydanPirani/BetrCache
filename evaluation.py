@@ -37,12 +37,17 @@ def evaluate_flickr30k():
         cache_ttl=3600,
     )
 
-    dataset = get_dataset()
+    scorer = SimilarityScorer(gpt_opts, emb_opts)
+
+    dataset = get_dataset(num_return=50)
     print("got dataset")
 
-    file = open("judge.csv", "w")
-
+    file = open("embedding.tsv", "w")
+    i = 0
     for img in dataset:
+        print(i)
+        i += 1
+
         captions = dataset[img]
         if len(captions) < 2:
             continue
@@ -64,13 +69,12 @@ def evaluate_flickr30k():
         exp_output = get_gpt_response(llm_input=second_llm_input, options=gpt_opts)
 
 
-        scorer = SimilarityScorer(gpt_opts)
-        score, _ = scorer.similarity_score(act_output.text, exp_output)
-
-        print(score)
+        llm_score = scorer.similarity_score(first_output.text, exp_output)
+        emb_score = scorer.embeddings_similarity(first_output.text, exp_output)
 
         hit_first_input = act_output.is_hit and (first_llm_input.text == act_output.best_candidate.query)
-        file.write(f"{img},{caption1},{caption2},{act_output.is_hit},{hit_first_input},{score}\n")
+        file.write(f"{img}\t{caption1}\t{caption2}\t{act_output.is_hit}\t{hit_first_input}\t{llm_score}\t{emb_score}\n")
+        file.flush()
 
 
 evaluate_flickr30k()

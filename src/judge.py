@@ -1,12 +1,15 @@
 from openai import OpenAI
-from src.config import GPTOptions
+from src.config import GPTOptions, EmbeddingOptions
+from src.api import get_embedding, LLMInput
+from math import sqrt
 
 MAX_SCORE = 100
 
 class SimilarityScorer:
-    def __init__(self, options: GPTOptions):
-        self.client = OpenAI(api_key=options.api_key)
-        self.model = options.model
+    def __init__(self, gpt_options: GPTOptions, embedding_options: EmbeddingOptions):
+        self.client = OpenAI(api_key=gpt_options.api_key)
+        self.model = gpt_options.model
+        self.embedding_options = embedding_options
 
     def similarity_score(self, text_a: str, text_b: str) -> float:
         """
@@ -37,9 +40,22 @@ class SimilarityScorer:
             top_p=1,
         )
         content = completion.choices[0].message.content.strip()
-        score, reason = content.split(";")
-        return float(score.strip())/MAX_SCORE, reason
+        score, _ = content.split(";", 1)
+        return float(score.strip())/MAX_SCORE
+    
+    def embeddings_similarity(self, text_a: str, text_b: str) -> float:
+        # Compute cosine similarity
+        a = LLMInput(text=text_a)
+        b = LLMInput(text=text_b)
+        emb_a = get_embedding(a, self.embedding_options)[0]
+        emb_b = get_embedding(b, self.embedding_options)[0]
 
+        dot = sum(x * y for x, y in zip(emb_a, emb_b))
+        norm_a = sqrt(sum(x * x for x in emb_a))
+        norm_b = sqrt(sum(y * y for y in emb_b))
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot / (norm_a * norm_b)
 
 if __name__ == "__main__":
     import os
