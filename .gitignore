@@ -5,3 +5,5 @@ venv/
 betr_env/*
 /target
 /flickr30k-images
+/outputs
+/plots

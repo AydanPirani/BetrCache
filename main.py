@@ -116,8 +116,9 @@ def repl():
         resp = query(llm_input=llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
         latency = time.time() - start_time
 
-        print(f"Response: {resp}")
-        print(f"Query latency: {latency:.3f} seconds")
+        # print(f"Response: {resp}")
+        # print(f"Query latency: {latency:.3f} seconds")
+        # print(resp)
         sleep(1)
 
 

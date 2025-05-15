@@ -5,8 +5,6 @@ import random
 def get_dataset(folder = "flickr30k-images", captions_file = "flickr30k_captions.txt", num_return = 100):
     images = os.listdir(folder)
 
-    random.seed(42)
-
     dataset = {}
     with open(captions_file, "r") as file:
         text = file.read()

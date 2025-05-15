@@ -52,6 +52,7 @@ def evaluate_flickr30k():
         if len(captions) < 2:
             continue
 
+        #Creating Similar Inputs
         caption1 = captions[0]
         caption2 = captions[1]
         question = "Is this an appropriate caption for this image: "
@@ -62,6 +63,7 @@ def evaluate_flickr30k():
         first_llm_input = LLMInput(text=question + caption1, image=image_path)
         second_llm_input = LLMInput(text=question + caption2, image=image_path)
 
+        #Queries
         first_output = query(llm_input=first_llm_input, gpt_opts=gpt_opts, emb_opts=emb_opts, cache=cache, threshold=THRESHOLD, sim_threshold=SIMILARITY_THRESHOLD)
 
         start_time = time.time()
@@ -70,20 +72,20 @@ def evaluate_flickr30k():
 
         exp_output = get_gpt_response(llm_input=second_llm_input, options=gpt_opts)
 
-
-        llm_score = scorer.similarity_score(first_output.text, exp_output)
-        emb_score = scorer.embeddings_similarity(first_output.text, exp_output)
+        #Metrics
+        cache_llm_score = scorer.similarity_score(first_output.text, exp_output)
+        cache_emb_score = scorer.embeddings_similarity(first_output.text, exp_output)
 
         if first_output.text != act_output.text:
-            llm_act_score = scorer.similarity_score(act_output.text, exp_output)
-            emb_act_score = scorer.embeddings_similarity(act_output.text, exp_output)
+            true_llm_score = scorer.similarity_score(act_output.text, exp_output)
+            true_emb_score = scorer.embeddings_similarity(act_output.text, exp_output)
         else:
-            llm_act_score = llm_score
-            emb_act_score = emb_score
+            true_llm_score = cache_llm_score
+            true_emb_score = cache_emb_score
 
         hit_first_input = act_output.is_hit and (first_llm_input.text == act_output.best_candidate.query)
-        file.write(f"{img}\t{caption1}\t{caption2}\t{act_output.is_hit}\t{hit_first_input}\t{llm_score}\t{emb_score}\t{llm_act_score}\t{emb_act_score}\t{latency}\n")
+        file.write(f"{img}\t{caption1}\t{caption2}\t{act_output.is_hit}\t{hit_first_input}\t{cache_llm_score}\t{cache_emb_score}\t{true_llm_score}\t{true_emb_score}\t{latency}\n")
         file.flush()
 
-
-evaluate_flickr30k()
+if __name__ == "__main__":
+    evaluate_flickr30k()
